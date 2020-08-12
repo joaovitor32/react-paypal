@@ -6,6 +6,7 @@ export interface PaypalType {
         production: string
     }
     locale: string,
-    commit: boolean;
-    
+    commit: boolean,
+    clientId:string,
+    amount:string,    
 }
