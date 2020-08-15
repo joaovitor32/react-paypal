@@ -1,5 +1,6 @@
 import React, { useEffect, useCallback, useRef } from "react";
 import { useDataPaypal } from "../../hooks/useDataPaypal";
+import usePaypalOptions  from "../../hooks/usePaypalOptions";
 import { PaypalType } from "../../types/Paypal";
 
 declare global {
@@ -9,9 +10,11 @@ declare global {
 }
 
 function Paypal(props: PaypalType) {
-  const { style, env, client, locale, commit,amount, clientId } = props;
+  const { style, env, client, locale, commit, amount, clientId } = props;
 
   const { isReady, setIsready } = useDataPaypal();
+  const { onApprovePaypal ,createOrderPaypal} =usePaypalOptions();
+
   const divPaypalContainer = useRef(null);
 
   const addPaypalSdk = useCallback(async () => {
@@ -32,38 +35,26 @@ function Paypal(props: PaypalType) {
     document.body.appendChild(script);
   }, [setIsready, clientId]);
 
-  const createOrderPaypal=(data:any,actions:any)=>{
-      // This function sets up the details of the transaction, including the amount and line item details.
-      return actions.order.create({
-        purchase_units: [{
-          amount: {
-            value: '0.01'
-          }
-        }]
-      })
-  }
-
-  const onOrderPaypal=(data:any,actions:any)=>{
-    return actions.order.capture().then(function(details:any) {
-      // This function shows a transaction success message to your buyer.
-      alert('Transaction completed by ' + details.payer.name.given_name);
-    });
-  }
+ 
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.paypal === undefined) {
       addPaypalSdk();
     } else {
       if (isReady) {
-        window.paypal.Buttons(
-          {
-            createOrder:(data:any,actions:any)=>{createOrderPaypal(data,actions)},
-            onApprove:(data:any,actions:any)=>{onOrderPaypal(data,actions)},
-          }
-        ).render(divPaypalContainer.current);
+        window.paypal
+          .Buttons({
+            createOrder: (data: any, actions: any) => {
+              createOrderPaypal(data, actions)
+            },
+            onApprove: (data: any, actions: any) => {
+              onApprovePaypal (data, actions);
+            },
+          })
+          .render(divPaypalContainer.current);
       }
     }
-  }, [addPaypalSdk, isReady]);
+  }, [addPaypalSdk, isReady,createOrderPaypal, onApprovePaypal ]);
 
   return isReady ? <div ref={divPaypalContainer}></div> : <h2>Loading</h2>;
 }
