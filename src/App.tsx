@@ -21,6 +21,8 @@ function App() {
           color: "gold",
           shape: "pill",
         }}
+        currency={"BRL"}
+      
     />)
   ;
 }

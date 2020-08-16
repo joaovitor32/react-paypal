@@ -1,7 +1,10 @@
 import React, { useEffect, useCallback, useRef } from "react";
+
 import { useDataPaypal } from "../../hooks/useDataPaypal";
-import usePaypalOptions  from "../../hooks/usePaypalOptions";
+import usePaypalOptions from "../../hooks/usePaypalOptions";
+
 import { PaypalType } from "../../types/Paypal";
+import { onShippingChange } from "../../types/onShippingChange";
 
 declare global {
   interface Window {
@@ -12,8 +15,20 @@ declare global {
 function Paypal(props: PaypalType) {
   const { style, env, client, locale, commit, amount, clientId } = props;
 
-  const { isReady, setIsready } = useDataPaypal();
-  const { onApprovePaypal ,createOrderPaypal} =usePaypalOptions();
+  const {
+    isReady,
+    setIsready,
+    details,
+    setDetails,
+    error,
+    setError,
+  } = useDataPaypal();
+
+  const {
+    onApprovePaypal,
+    createOrderPaypal,
+    onShippingChangePaypal,
+  } = usePaypalOptions(props);
 
   const divPaypalContainer = useRef(null);
 
@@ -35,8 +50,6 @@ function Paypal(props: PaypalType) {
     document.body.appendChild(script);
   }, [setIsready, clientId]);
 
- 
-
   useEffect(() => {
     if (typeof window !== "undefined" && window.paypal === undefined) {
       addPaypalSdk();
@@ -44,17 +57,29 @@ function Paypal(props: PaypalType) {
       if (isReady) {
         window.paypal
           .Buttons({
-            createOrder: (data: any, actions: any) => {
-              createOrderPaypal(data, actions)
-            },
-            onApprove: (data: any, actions: any) => {
-              onApprovePaypal (data, actions);
-            },
+            createOrder: (data: any, actions: any) =>createOrderPaypal(data, actions),
+            onApprove: (data: any, actions: any) =>
+              onApprovePaypal(data, actions)
+                .then((details: any) => {
+                  setDetails(details);
+                })
+                .catch((err) => {
+                  setError(err);
+                }),
+            onShippingChange: ({ data, actions }: onShippingChange) =>onShippingChangePaypal({ data, actions }),
           })
           .render(divPaypalContainer.current);
       }
     }
-  }, [addPaypalSdk, isReady,createOrderPaypal, onApprovePaypal ]);
+  }, [
+    addPaypalSdk,
+    isReady,
+    createOrderPaypal,
+    onApprovePaypal,
+    onShippingChangePaypal,
+    setDetails,
+    setError
+  ]);
 
   return isReady ? <div ref={divPaypalContainer}></div> : <h2>Loading</h2>;
 }

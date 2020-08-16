@@ -8,5 +8,6 @@ export interface PaypalType {
     locale: string,
     commit: boolean,
     clientId:string,
-    amount:string,    
+    amount:string,
+    currency:string    
 }
