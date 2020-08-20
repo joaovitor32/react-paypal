@@ -1,5 +1,12 @@
+import {StandardCardFields} from './StandardCardFields';
+
 export interface PaypalType {
-    style: {},
+    styleProp?: {
+        layout?:string,
+        color?:string,
+        shape?:string,
+        label?:string
+    },
     env: string,
     client: {
         sandbox: string,
@@ -9,5 +16,7 @@ export interface PaypalType {
     commit: boolean,
     clientId:string,
     amount:string,
-    currency:string    
+    currency:string,
+    standardCardFields?:StandardCardFields
+
 }

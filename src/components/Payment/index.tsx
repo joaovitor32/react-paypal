@@ -1,10 +1,14 @@
 import React, { useEffect, useCallback, useRef } from "react";
 
+import { PaypalType } from "../../types/Paypal";
+import { onShippingChange } from "../../types/onShippingChange";
+
 import { useDataPaypal } from "../../hooks/useDataPaypal";
 import usePaypalOptions from "../../hooks/usePaypalOptions";
 
-import { PaypalType } from "../../types/Paypal";
-import { onShippingChange } from "../../types/onShippingChange";
+import { StandardCardFields } from "../../types/StandardCardFields";
+
+import ModalMessage from "../Modal/index";
 
 declare global {
   interface Window {
@@ -13,7 +17,17 @@ declare global {
 }
 
 function Paypal(props: PaypalType) {
-  const { style, env, client, locale, commit, amount, clientId } = props;
+  const {
+    styleProp,
+    env,
+    client,
+    locale,
+    commit,
+    amount,
+    clientId,
+    standardCardFields,
+  } = props;
+  const divPaypalContainer = useRef(null);
 
   const {
     isReady,
@@ -29,8 +43,6 @@ function Paypal(props: PaypalType) {
     createOrderPaypal,
     onShippingChangePaypal,
   } = usePaypalOptions(props);
-
-  const divPaypalContainer = useRef(null);
 
   const addPaypalSdk = useCallback(async () => {
     const script = document.createElement("script");
@@ -50,35 +62,60 @@ function Paypal(props: PaypalType) {
     document.body.appendChild(script);
   }, [setIsready, clientId]);
 
+  const handleError = useCallback(
+    (err: any) => {
+      setError(true);
+      return <ModalMessage err={err} setError={setError} />;
+    },
+    [setError]
+  );
+
   useEffect(() => {
     if (typeof window !== "undefined" && window.paypal === undefined) {
       addPaypalSdk();
     } else {
       if (isReady) {
         window.paypal
-          .Buttons({
-            createOrder: (data: any, actions: any) =>createOrderPaypal(data, actions),
-            onApprove: (data: any, actions: any) =>
-              onApprovePaypal(data, actions)
-                .then((details: any) => {
-                  setDetails(details);
-                })
-                .catch((err) => {
-                  setError(err);
-                }),
-            onShippingChange: ({ data, actions }: onShippingChange) =>onShippingChangePaypal({ data, actions }),
-          })
+          .Buttons(
+            {
+              style: {
+                layout: styleProp?.layout ? styleProp.layout : "vertical",
+                color: styleProp?.color ? styleProp.color : "blue",
+                shape: styleProp?.shape ? styleProp.shape : "rect",
+                label: styleProp?.label ? styleProp.label : "paypal",
+              },
+            },
+            {
+              enableStandardCardFields: !!standardCardFields,
+              createOrder: (data: any, actions: any) =>createOrderPaypal(data, actions),
+              onApprove: (data: any, actions: any) =>
+                onApprovePaypal(data, actions)
+                  .then((details: any) => {
+                    setDetails(details);
+                  })
+                  .catch((err) => {
+                    setError(err);
+                  }),
+              onShippingChange: ({ data, actions }: onShippingChange) =>onShippingChangePaypal({ data, actions }),
+              onCancel: () => setIsready(false),
+              onError: (err: any) => handleError(err),
+            }
+          )
           .render(divPaypalContainer.current);
       }
     }
   }, [
     addPaypalSdk,
     isReady,
+    setIsready,
     createOrderPaypal,
     onApprovePaypal,
     onShippingChangePaypal,
     setDetails,
-    setError
+    setError,
+    handleError,
+    styleProp,
+    standardCardFields,
   ]);
 
   return isReady ? <div ref={divPaypalContainer}></div> : <h2>Loading</h2>;
